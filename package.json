@@ -1,0 +1,11 @@
+{
+  "name": "f-sa",
+  "version": "1.0.0",
+  "main": "app.js",
+  "repository": "git@github.com:jhnferraris/f-sa.git",
+  "author": "jhnferraris <johnmichaelferraris@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node app.js"
+  }
+}
