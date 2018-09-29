@@ -1,13 +1,19 @@
+const { performance } = require('perf_hooks');
 const arguments = process.argv;
 if (arguments[2] !== '--problem') {
   console.log('Missing argument: problem');
 
   process.exit(1);
 }
-
 const problem = arguments[3];
+if (problem !== 'spring') {
+  console.log('It only supports spring function for now');
+  process.exit(1);
+}
+
 const config = require('./config');
 const functions = require('./functions');
+const simulatedAnnealing = require('./simulated-annealing');
 const fireflies = [];
 const { population } = config.fsaConfig;
 const designFunction = config.functions[problem];
@@ -54,7 +60,7 @@ const main = () => {
   let bestFirefly = fireflies[0];
   let candidateFirefly = null;
   const { globalGeneration } = config.fsaConfig;
-  const output = [];
+  const startTime = performance.now();
   for (let generationIndex = 1; generationIndex <= globalGeneration; generationIndex++) {
     for (let i = 0; i < population; i++) {
       for (let j = 0; j < i; j++) {
@@ -63,13 +69,23 @@ const main = () => {
         if (lightIntensityJ < lightIntensityI) {
           candidateFirefly = fireflies[j];
           updateLightIntensity(i, moveFirefly(fireflies[i], fireflies[j]));
-          // TODO Add SA here
+          const localFirefly = simulatedAnnealing.executeLocalSearch(problem, fireflies[i]);
+          if (fireflies[i][designFunction.config.dimension] > localFirefly[designFunction.config.dimension]) {
+            updateLightIntensity(i, localFirefly);
+          }
         } else if (lightIntensityI < lightIntensityJ) {
           candidateFirefly = fireflies[i];
           updateLightIntensity(j, moveFirefly(fireflies[j], fireflies[i]));
-          // TODO Add SA here
+          const localFirefly = simulatedAnnealing.executeLocalSearch(problem, fireflies[j]);
+          if (fireflies[j][designFunction.config.dimension] > localFirefly[designFunction.config.dimension]) {
+            updateLightIntensity(j, localFirefly);
+          }
         } else {
           updateLightIntensity(j, moveFirefly(fireflies[j], fireflies[i]));
+          const localFirefly = simulatedAnnealing.executeLocalSearch(problem, fireflies[j]);
+          if (candidateFirefly[designFunction.config.dimension] > localFirefly[designFunction.config.dimension]) {
+            updateLightIntensity(i, localFirefly);
+          }
         }
 
         if (candidateFirefly[designFunction.dimension] < bestFirefly[designFunction.dimension]) {
@@ -78,13 +94,12 @@ const main = () => {
       }
     }
     alpha = finalAlpha + (initialAlpha - finalAlpha) * Math.exp(-1 * generationIndex);
-    output.push({
-      bestFirefly,
-      generationIndex
-    });
   }
 
-  console.log(output);
+  console.log({
+    bestFirefly,
+    runtime: performance.now() - startTime
+  });
 };
 
 main();
